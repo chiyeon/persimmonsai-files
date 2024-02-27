@@ -12,10 +12,10 @@ wget https://huggingface.co/TheBloke/phi-2-GGUF/resolve/main/phi-2.Q4_K_M.gguf
 
 Run `make` to build the project, or see below to add support for gpu acceleration.
 
-### GPU Acceleration
-Llama.cpp supports GPU Acceleration with CUBLAS. First ensure you have applicable hardware such as an NVIDIA graphics card. Then, install [`nvidia-cuda-toolkit`](https://developer.nvidia.com/cuda-downloads) on your system, ensuring the command `nvcc` works.
+### GPU Acceleration (optional)
+Llama.cpp supports GPU Acceleration with CUBLAS. First ensure you have applicable hardware such as an NVIDIA graphics card. Then, install [`nvidia-cuda-toolkit`](https://developer.nvidia.com/cuda-downloads) on your system, ensuring `nvcc` runs.
 
-Then, we can instead bulid with `make LLAMA_CUBLAS=1`. When starting llama.cpp, we can also use the runtime argument `-ngl` to specify any number of gpu layers.
+Then, we can instead build with `make LLAMA_CUBLAS=1`. When starting llama.cpp, we can also use the runtime argument `-ngl` to specify any number of gpu layers.
 
 ```
 make LLAMA_CUBLAS=1
@@ -127,22 +127,10 @@ This takes arguments for the input configuration file and the output file, letti
 If we have generated "enough" conversations, we can prep our data & train a model.
 
 ## Conversation Formatting
-First, we can remove every line that doesn't begin with `STUDENT`, `TEACHER` and `TERM`.
+To prepare the conversations for training, we need to remove lines without proper terms (that don't start with STUDENT, TEACHER, TERM), remove trailing lines (conversations should always end with the teacher), and change the key terms to symbols. We can use the `format.py` script in the `chat-builder` repo to do so.
 
 ```console
-cat /tmp/conv.txt | grep -v '^STUDENT:' | grep -v '^TEACHER:' | grep -v '^TERM:' | grep -v '^$'
-```
-
-Next, lets remove trailing `STUDENT` questions/comments, ensuring the `TEACHER` always speaks last.
-
-```console
-cat /tmp/conv.txt | tr '\n' @ | sed 's:@@:\n:g' | sed 's/@STUDENT: [^@][^@]*$//g' | sed 's:$:\n:g' | tr '@' '\n'
-```
-
-Finally, lets convert `STUDENT`, `TEACHER`, and `TERM` into symbols.
-
-```console
-cat /tmp/conv.txt | sed 's/STUDENT:/=/g' | sed 's/TEACHER:/#/g' | sed 's/TERM:/~/g'
+python format.py /tmp/physics-conv.txt >> prepped-physics-conv.txt
 ```
 
 ## Training
@@ -199,6 +187,8 @@ python -m train.py --compile=False --eval_iters=10 --batch_size=2
 ```
 
 # Inference
+> the following documentation is a work in progress and untested.
+
 When our model is complete, we can convert it to `gguf` format with `llama.cpp` tools.
 
 ```console

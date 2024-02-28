@@ -222,10 +222,8 @@ python -c "import torch; import json; c = torch.load('$file')['model_args'];c.se
 python convert.py --outfile "$out" --vocab-dir . "$file" --ctx 512 --pad-vocab
 ```
 
-With our `gguf` file in hand, we can have a conversation with it using the following.
-
 ## Testing
-Once our `.gguf` file is obtained, we can test it with the following.
+With our `.gguf` file in hand, we can test it with the following.
 
 ```console
 ./main --log-disable -m /tmp/out.gguf --in-prefix '' --escape --reverse-prompt '\n= ' -i

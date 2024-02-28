@@ -15,7 +15,7 @@ Run `make` to build the project, or see below to add support for gpu acceleratio
 ### GPU Acceleration (optional)
 Llama.cpp supports GPU Acceleration with CUBLAS. First ensure you have applicable hardware such as an NVIDIA graphics card. Then, install [`nvidia-cuda-toolkit`](https://developer.nvidia.com/cuda-downloads) on your system, ensuring `nvcc` runs.
 
-Then, we can instead build with `make LLAMA_CUBLAS=1`. When starting llama.cpp, we can also use the runtime argument `-ngl` to specify any number of gpu layers.
+Then, we can instead build with `make LLAMA_CUBLAS=1`. When starting the binary, we can also use the runtime argument `-ngl` to specify a number of gpu layers.
 
 ```
 make LLAMA_CUBLAS=1
@@ -76,23 +76,27 @@ Now we can start generating conversations.
 python get-word-conversations.py example.json >> /tmp/example-conv.txt
 ```
 
-## Conversations on a Specific Topic
-Lets build a configuration file for generating conversations on a specific topic, in this case physics. We can ask a model for a list or create one directly.
-
-### Model Generated Lists
-We can run something like the following to generate a list of physics related terms.
+If you built `llama.cpp` with `CUBLAS`, you can also pass in the `ngl` GPU layer argument directly into the `get-word-conversations.py` script.
 
 ```console
-./main -m phi-2.Q4_K_M.gguf -p 'here is a list of 10000 terms about physics:\n"gravity", "force", "energy", "absolute zero", ' --escape
+python get-word-conversations.py example.json -ngl 1000 >> /tmp/example-conv.txt
 ```
 
-Generally we want the format to be in the form of terms surrounded by quotation marks with commas and newlines in between, but this is something we can easily change later.
+## Conversations on a Specific Topic
+Lets build a configuration file for a specific topic, in this case physics. We can create one from an online resource or generate one.
 
-### Online Resource Generated Lists
-We may also generate lists from in online resource like a glossary, in this case Wikipedia.
+### Online Resource Generated Lists (recommended)
+For this example, we will use Wikipedia's glossary of physics terms.
 
 ```console
 wget -O - https://en.wikipedia.org/wiki/Glossary_of_physics  | grep '<dt class="glossary" .*<a .*>.*</a></dfn></dt>' | sed 's:.*><a .*>\(.*\)</a>.*:"\1",:g' > /tmp/physic-terms.txt
+```
+
+### Model Generated Lists
+We can run something like the following to generate a list of physics related terms, but (in the writers experience at least) it generally has mixed results.
+
+```console
+./main -m phi-2.Q4_K_M.gguf -p 'The following is a list of 1000 physics terms. There will be NOTHING except physics terms next:\n"gravity", "force", "energy", "absolute zero", ' --escape
 ```
 
 ### Building the Configuration File
@@ -112,7 +116,14 @@ If all loks okay, we can use a simple bash script to generate conversations inde
 Put the following into a `run.sh` script and run it to generate conversations.
 
 ```console
-while True; do
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+    echo usage: run.sh config.json output.txt
+    exit
+fi
+
+while true; do
 	python get-word-conversations.py $1 >> $2
 done
 ```
@@ -176,12 +187,19 @@ diff old_train.py new_train.py
  # adamw optimizer
 ```
 
-We can run the following to finish our preperations.
+For pretokenizing, `tinytext.py` will look for our conversation in `data/tinytext.txt` so lets move it there.
+
+```console
+mkdir ./llama2.c/data
+mv prepped-physics-conv ./llama2.c/data/tinytext.txt
+```
+
+We can then run the following to finish our preperations.
 ```console
 python tinytext.py pretokenize
 ```
 
-Letting us finally train our model
+After `data/tinytext.bin` is generated, we can use `train.py` to train our model. Adjust the hyperparameters as needed.
 ```console
 python -m train.py --compile=False --eval_iters=10 --batch_size=2
 ```

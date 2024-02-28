@@ -40,7 +40,7 @@ git clone https://github.com/persimmonsai/chat-builder.git
 cp chat-builder/get-word-conversations.py /dir/to/llama.cpp/
 ```
 
-Next, we need a base configuration file. We can use [this example](https://drive.google.com/file/d/1hb9TBalreZ9jzNa925MH7yMjhCcWyCBV/view). Either download it or copy it below into an `example.json` inside your `llama.cpp` directory.
+Next, we need a base configuration file. Copy the following into `example.json` in your `llama.cpp` directory.
 
 ```json
 {
@@ -205,20 +205,28 @@ python -m train.py --compile=False --eval_iters=10 --batch_size=2
 ```
 
 # Inference
-> the following documentation is a work in progress and untested.
-
 When our model is complete, we can convert it to `gguf` format with `llama.cpp` tools.
 
+## Conversion
+We will have to set some environmental variables first. The one that matters is `file`, which is the `.pt` file `train.py` should have generated in an `out` folder.
+
 ```console
-file='/tmp/ckpt.pt'
+file='dir/to/llama2.c/out/ckpt.pt'
 params='/tmp/params.json'
 out='/tmp/out.gguf'
-python -c "import torch; import json; c = torch.load('$file')['model_args'] ;  c.setdefault('norm_eps', 1e-05) ; print(json.dumps(c))" > "$params"
+```
+
+We can then convert our checkpoint file into `/tmp/out.gguf`
+```console
+python -c "import torch; import json; c = torch.load('$file')['model_args'];c.setdefault('norm_eps', 1e-05) ; print(json.dumps(c))" > "$params"
 python convert.py --outfile "$out" --vocab-dir . "$file" --ctx 512 --pad-vocab
 ```
 
 With our `gguf` file in hand, we can have a conversation with it using the following.
 
+## Testing
+Once our `.gguf` file is obtained, we can test it with the following.
+
 ```console
-./main --log-disable -m /tmp/out.gguf --in-prefix '' --escsape --reverse-prompt '\n= ' -i
+./main --log-disable -m /tmp/out.gguf --in-prefix '' --escape --reverse-prompt '\n= ' -i
 ```

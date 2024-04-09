@@ -1,4 +1,0 @@
-pyarrow
-pyarrow.parquet
-numpy
-pandas
